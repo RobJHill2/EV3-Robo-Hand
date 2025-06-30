@@ -1,2 +1,23 @@
 # EV3-Robo-Hand
 Connect a VR glove to a robot hand via Arduino interface.
+
+Requirements:
+- Create a finger tracking glove
+- Connect it to a microcontroller
+- Interface microcontroller with Ev3 RJ12 cables
+- Build an Ev3 robot hand
+- Connect it to the microcontroller
+
+BOM:
+Name        Quantity	Sourced (y/n)	Total Price	Link
+MEGA 2560	  1		      y             N/A		      N/A
+
+L293D		    10		    n		          £0.74		    https://fr.aliexpress.com/item/1005006184056978.html
+RJ12 Con.	  10		    n		          £1.03		    https://fr.aliexpress.com/item/32874855770.html
+RJ12 Cable  10		    y		          N/A		      N/A
+Ev3 Motor	  6		      n		          £63.58		  https://fr.aliexpress.com/item/1005006513106579.html
+
+b10kO Pot.  5		      n		          £1.12		    https://fr.aliexpress.com/item/1005006271589247.html
+Badge Reel  5		      n		          £3.67		    https://www.ebay.com/itm/284933224486
+
+Final Cost: £70.14
