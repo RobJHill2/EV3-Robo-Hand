@@ -1,0 +1,13 @@
+5x Spool
+5x Tensioner
+5x Cover
+5x Holder
+10x/15x GuideNode
+5x Endcap*
+
+* Inner Diammeters
+Thumb: 23mm
+Index: 18mm
+Middle: 18mm
+Ring: 18mm
+Pinky: 15mm
