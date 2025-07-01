@@ -11,3 +11,10 @@ Index: 18mm
 Middle: 18mm
 Ring: 18mm
 Pinky: 15mm
+
+Nozzle Diammeter: 0.4mm
+Infill: 10-20%, you can go higher if your layer adhesion needs it
+Layer height: 0.2mm
+No supports (brims are okay)
+Shell thickness: 0.8mm (2 outlines)
+Retraction settings: May differ between printers, 5mm on Ender 3 is fine
