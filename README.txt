@@ -7,6 +7,10 @@ Requirements:
 - Build an Ev3 robot hand
 - Connect it to the microcontroller
 
+Guides:
+LucidGloves Tutorial: https://www.youtube.com/watch?v=Qj4hqRKiy8g
+EV3 Driver Tutorial: https://www.youtube.com/watch?v=Grg6tPpbUDM
+
 BOM:
 Name		Quantity	Sourced (y/n)	Total Price	Link
 MEGA 2560	1		y		N/A		N/A
