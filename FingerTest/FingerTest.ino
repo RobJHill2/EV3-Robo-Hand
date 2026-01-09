@@ -7,70 +7,175 @@
 #define O1_INDEX_IP 24
 #define O2_INDEX_IP 25
 
-#define YSIG_INDEX_MCP 2 // interrupt bool
-#define BSIG_INDEX_MCP 53 // bool
+#define YSIG_INDEX_MCP 2 // interrupt pin
+#define BSIG_INDEX_MCP 53 // digital pin
 #define YSIG_INDEX_IP 3
 #define BSIG_INDEX_IP 52
 
 #define INPUT_INDEX A1
+
+#define MCP_MAX_ANGLE 90
 
 // PID Tuning
 #define Kp 1
 #define Ki 0.9
 #define Kd 0.05
 
-#define tolerance 0
+#define TOLERANCE 0
 
-#define speedFactor 1.3
+#define SPEEDFACTOR 1.3
 
 // Class Definitions
-
 class Joint {
   public:
+    volatile int angle = 0;
+
+    Joint(uint8_t EN, uint8_t O1, uint8_t O2, uint8_t YSIG, uint8_t BSIG) {
+      this->EN = EN;
+      this->O1 = O1;
+      this->O2 = O2;
+      this->YSIG = YSIG;
+      this->BSIG = BSIG;
+    }
+
+    double pid(int error) {
+      double now = millis();
+      double dt  = (now - last_time) / 1000.00;
+      last_time = now;
+
+      if (abs(error) <= TOLERANCE) error = 0;
+      double proportional = error;
+      integral += error * dt;
+      double differential = (error - prev_error) / dt;
+      prev_error = error;
+
+      return (Kp * proportional) + (Ki * integral) + (Kd * differential);
+    }
+
+    void motorSpeed(int speed) {
+      if (speed > 100) speed = 100;
+      if (speed < -100) speed = -100;
+
+      analogWrite(EN, int(abs(speed)*2.55));
+
+      if (speed > 0) {
+        digitalWrite(O1, HIGH); // forwards
+        digitalWrite(O2, LOW);
+      } else {
+        digitalWrite(O1, LOW); // backwards
+        digitalWrite(O2, HIGH);
+      }
+    }
+    
+    void countDegrees(){
+      if (digitalRead(YSIG) == digitalRead(BSIG)){
+        angle--;
+      } else {
+        angle++;
+      }
+      if (angle == 360 || angle == -360){
+        angle = 0;
+      }
+    }
+
   private:
-}
+    double integral = 0;
+    double prev_error = 0;
+    double last_time = 0;
+    uint8_t EN;
+    uint8_t O1;
+    uint8_t O2;
+    uint8_t YSIG;
+    uint8_t BSIG;
+};
 
 class Finger {
   public:
-  Finger() {
-    initPotVal = analogRead(INPUT_INDEX);
-  };
+    Joint* IP;
+    Joint* MCP;
+
+    Finger(uint8_t IN, uint8_t IP_EN, uint8_t IP_O1, uint8_t IP_O2, uint8_t IP_YSIG, uint8_t IP_BSIG, uint8_t MCP_EN, uint8_t MCP_O1, uint8_t MCP_O2, uint8_t MCP_YSIG, uint8_t MCP_BSIG) {
+      this->IN = IN;
+      initPotVal = analogRead(IN);
+
+      IP = new Joint(IP_EN, IP_O1, IP_O2, IP_YSIG, IP_BSIG);
+      MCP = new Joint(MCP_EN, MCP_O1, MCP_O2, MCP_YSIG, MCP_BSIG);
+    }
+
+    tick() {
+      int potVal = analogRead(IN);
+      
+      int setpoint = (potVal - initPotVal) / 5;
+      setpoint = round((float)setpoint / 10)*10;
+      // setpoint measured in degrees from starting position
+
+      int IPsetpoint;
+      int MCPsetpoint;
+      if (setpoint > MCP_MAX_ANGLE) {
+        IPsetpoint = setpoint - MCP_MAX_ANGLE;
+        MCPsetpoint = MCP_MAX_ANGLE;
+      } else if (setpoint < -MCP_MAX_ANGLE) {
+        IPsetpoint = setpoint + MCP_MAX_ANGLE;
+        MCPsetpoint = -MCP_MAX_ANGLE;
+      } else {
+        IPsetpoint = 0;
+        MCPsetpoint = setpoint;
+      }
+
+      double pidOutput;
+
+      pidOutput = IP->pid(IPsetpoint - IP->angle);
+      IP->motorSpeed((int)(pidOutput * SPEEDFACTOR));
+
+      pidOutput = MCP->pid(MCPsetpoint - MCP->angle);
+      MCP->motorSpeed((int)(pidOutput * SPEEDFACTOR));
+    }
+
   private:
-  int initPotVal;
-  Joint MCP;
-  Joint IP;
+    uint8_t IN;
+    uint8_t initPotVal;
 };
 
-
-
+Finger* index;
 
 void setup() {
   Serial.begin(115200);
   while(!Serial);
 
-  pinMode(EN_INDEX_MCP, OUTPUT);
   pinMode(EN_INDEX_IP, OUTPUT);
+  pinMode(EN_INDEX_MCP, OUTPUT);
 
-  pinMode(O1_INDEX_MCP, OUTPUT);
-  pinMode(O2_INDEX_IP, OUTPUT);
   pinMode(O1_INDEX_IP, OUTPUT);
   pinMode(O2_INDEX_IP, OUTPUT);
+  pinMode(O1_INDEX_MCP, OUTPUT);
+  pinMode(O2_INDEX_MCP, OUTPUT);
 
+  pinMode(YSIG_INDEX_IP, INPUT);
+  pinMode(BSIG_INDEX_IP, INPUT);  
   pinMode(YSIG_INDEX_MCP, INPUT);
   pinMode(BSIG_INDEX_MCP, INPUT);
-  pinMode(YSIG_INDEX_IP, INPUT);
-  pinMode(BSIG_INDEX_IP, INPUT);
-
+  
   pinMode(INPUT_INDEX, INPUT);
 
-  Finger index;
+  index = new Finger(INPUT_INDEX, EN_INDEX_IP, O1_INDEX_IP, O2_INDEX_IP, YSIG_INDEX_IP, BSIG_INDEX_IP, EN_INDEX_MCP, O1_INDEX_MCP, O2_INDEX_MCP, YSIG_INDEX_MCP, BSIG_INDEX_MCP);
 
-  // attachInterrupt();
+  attachInterrupt(digitalPinToInterrupt(YSIG_INDEX_MCP), index_MCP_ISR, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(YSIG_INDEX_IP), index_IP_ISR, CHANGE);
 
-  Serial.println("hello world";)
+  Serial.println("hello world");
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
+  index->tick();
 
+  delay(10);
 }
+
+void index_IP_ISR() {
+  index->IP->countDegrees();
+}
+
+void index_MCP_ISR() {
+  index->MCP->countDegrees();
+}
+

@@ -27,7 +27,8 @@ int initPotVal;
 
 #define speedFactor 1.3
 
-double integral, prev_error = 0;
+double integral = 0;
+double prev_error = 0;
 
 void setup() {
   Serial.begin(115200);
@@ -60,14 +61,14 @@ void loop() {
   int potVal = analogRead(INDEX_IN);
   int setpoint = (potVal - initPotVal) / 5;
   setpoint = round((float)setpoint / 10)*10;
-  Serial.println(degrees);
-  Serial.println(setpoint);
+  // setpoint in degrees from starting position
   double pidOutput = pid(setpoint - degrees); // if degrees > setpoint: -ve error
   //Serial.println(pidOutput);
   MotorSpeed((int)(pidOutput * speedFactor));
 
   delay(10);
 }
+
 double pid(int error) {
   if (abs(error) <= tolerance) error = 0;
   double proportional = error;
@@ -77,7 +78,6 @@ double pid(int error) {
 
   return (Kp * proportional) + (Ki * integral) + (Kd * differential);
 }
-
 
 void countDegrees(){
   if (digitalRead(YELLOW_SIG) == digitalRead(BLUE_SIG)){
@@ -89,7 +89,6 @@ void countDegrees(){
     degrees = 0;
   }
 }
-
 
 void MotorSpeed(int speed) {
   if (speed > 100) speed = 100;
